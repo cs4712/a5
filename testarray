@@ -1,0 +1,140 @@
+#include <iostream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+
+sem_t te1, te2, te3, se1, se2, se3;
+
+int edgs[2][2];
+
+int g1, g2, g3;
+
+void *io( void *ptr );
+void *th1( void *ptr);
+void *th2( void *ptr);
+void *th3( void *ptr);
+
+int main(int argc, char *argv[])
+{
+    pthread_t thread1, thread2, thread3, thread4;
+
+    int  iret1, iret2, iret3 ,iret4;
+
+    sem_init(&se1, 0, 0);
+    sem_init(&se2, 0, 0);
+   
+    
+    edgs[0][0]=0;
+    edgs[0][1]=0;
+    edgs[1][0]=0;
+    edgs[1][1]=0;
+
+     /* Create independent threads each of which will execute function */
+    iret1 = pthread_create( &thread1, NULL, io, NULL);
+    if(iret1)
+    {
+        fprintf(stderr,"Error - pthread_create() return code: %d\n",iret1);
+        return -1;
+    }
+    
+    iret2 = pthread_create( &thread2, NULL, th1, NULL);
+    if(iret2)
+    {
+        fprintf(stderr,"Error - pthread_create() return code: %d\n",iret2);
+        return -1;
+    }
+    
+    iret3 = pthread_create( &thread3, NULL, th2, NULL);
+    if(iret3)
+    {
+        fprintf(stderr,"Error - pthread_create() return code: %d\n",iret3);
+        return -1;
+    }
+    
+    iret4 = pthread_create( &thread4, NULL, th3, NULL);
+    if(iret4)
+    {
+        fprintf(stderr,"Error - pthread_create() return code: %d\n",iret4);
+        return -1;
+    }
+    
+    
+    /* Wait till threads are complete before main continues. Unless we  */
+    /* wait we run the risk of executing an exit which will terminate   */
+    /* the process and all threads before the threads have completed.   */
+    
+    pthread_join( thread1, NULL);
+    pthread_join( thread2, NULL);
+    pthread_join( thread3, NULL);
+    pthread_join( thread4, NULL);
+
+    return 0;
+}
+
+void* io( void *ptr )
+{
+    while (1){
+        int a, b;
+
+        // input
+        std::cin >> a;
+        std::cin >> b;
+        edgs[0][1] = a;
+        edgs[1][0] = b;
+        
+        sem_post(&te1); 
+        sem_post(&te2);
+        sem_post(&te3);
+
+        //output
+        sem_wait(&se1);
+        sem_wait(&se2);
+        sem_wait(&se3);
+        int n = 3;
+
+        std::cout << "g1 = " << g1 << std::endl;
+        std::cout << "g2 = " << g2 << std::endl;
+        std::cout << "g3 = " << g3 << std::endl;
+  
+    }
+       
+}
+
+void* th1( void *ptr)
+{
+    while(1){
+       
+        sem_wait(&te1);
+   
+        g1 = edgs[0][0] + edgs[0][1];   
+       
+    	sem_post(&se1);
+    }
+    
+}
+
+void* th2( void *ptr)
+{
+    while(1){
+        
+        sem_wait(&te2);
+    
+        g2 = edgs[0][1] + edgs[1][0];    
+        
+        sem_post(&se2);
+    }
+}
+
+void* th3( void *ptr)
+{
+    while(1){
+
+        sem_wait(&te3);
+     
+        g3 = edgs[1][0] + edgs[1][1];   
+     
+        sem_post(&se3);
+    }
+}
